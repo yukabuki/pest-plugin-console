@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Yukabuki\PestPluginConsole\Output;
 
+use Yukabuki\PestPluginConsole\PluginState;
 use Yukabuki\PestPluginConsole\Translations\TranslationManager;
 
 use function Termwind\render;
@@ -24,6 +25,10 @@ final class ConsoleOutputHandler
      */
     public function success(string $messageKey, array $parameters = []): void
     {
+        if (! PluginState::isEnabled()) {
+            return;
+        }
+
         $message = $this->translations->trans($messageKey, $parameters);
 
         render(<<<HTML
@@ -39,6 +44,10 @@ final class ConsoleOutputHandler
      */
     public function error(string $messageKey, array $parameters = []): void
     {
+        if (! PluginState::isEnabled()) {
+            return;
+        }
+
         $message = $this->translations->trans($messageKey, $parameters);
 
         render(<<<HTML
@@ -54,6 +63,10 @@ final class ConsoleOutputHandler
      */
     public function info(string $messageKey, array $parameters = []): void
     {
+        if (! PluginState::isEnabled()) {
+            return;
+        }
+
         $message = $this->translations->trans($messageKey, $parameters);
 
         render(<<<HTML
