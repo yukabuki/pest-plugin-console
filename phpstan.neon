@@ -4,3 +4,7 @@ parameters:
         - src
 
     reportUnmatchedIgnoredErrors: true
+
+    ignoreErrors:
+        # Pest plugin contracts are marked @internal by design.
+        - '#.*marked as @internal.*#'

@@ -5,46 +5,66 @@ declare(strict_types=1);
 namespace Yukabuki\PestPluginConsole;
 
 use Pest\Contracts\Plugins\AddsOutput;
+use Pest\Contracts\Plugins\Bootable;
 use Pest\Contracts\Plugins\HandlesArguments;
-
-use function Termwind\render;
+use Yukabuki\PestPluginConsole\Output\ConsoleRenderer;
+use Yukabuki\PestPluginConsole\Results\Subscribers\TestFailedSubscriber;
+use Yukabuki\PestPluginConsole\Results\Subscribers\TestFinishedSubscriber;
+use Yukabuki\PestPluginConsole\Results\Subscribers\TestPassedSubscriber;
+use Yukabuki\PestPluginConsole\Results\Subscribers\TestSkippedSubscriber;
+use Yukabuki\PestPluginConsole\Results\Subscribers\TestStartedSubscriber;
+use Yukabuki\PestPluginConsole\Results\TestResultCollector;
 
 /**
  * @internal
  */
-final class Plugin implements HandlesArguments, AddsOutput
+final class Plugin implements Bootable, HandlesArguments, AddsOutput
 {
     /**
-     * The CLI flag users can pass to bypass the plugin output entirely.
+     * CLI flag that falls back to Pest's original Collision output.
+     * Must also be handled in bin/pest-console before the autoloader loads.
      */
     private const string FLAG = '--no-console';
 
     /**
-     * Intercept CLI arguments before Pest processes them.
+     * Registers PHPUnit event subscribers to collect test results.
+     * Called before the test suite runs.
+     */
+    public function boot(): void
+    {
+        TestResultCollector::reset();
+
+        \PHPUnit\Event\Facade::instance()->registerSubscribers(
+            new TestStartedSubscriber(),
+            new TestPassedSubscriber(),
+            new TestFailedSubscriber(),
+            new TestSkippedSubscriber(),
+            new TestFinishedSubscriber(),
+        );
+    }
+
+    /**
+     * Detects --no-console and disables the plugin for this run.
      *
-     * If --no-console is present, the plugin disables itself and removes
-     * the flag so Pest does not complain about an unknown option.
-     *
-     * @param  array<int, string>  $originals
+     * @param  array<int, string>  $arguments
      * @return array<int, string>
      */
-    public function handleArguments(array $originals): array
+    public function handleArguments(array $arguments): array
     {
-        if (! in_array(self::FLAG, $originals, true)) {
-            return $originals;
+        if (! in_array(self::FLAG, $arguments, true)) {
+            return $arguments;
         }
 
         PluginState::disable();
 
         return array_values(
-            array_filter($originals, fn (string $arg): bool => $arg !== self::FLAG)
+            array_filter($arguments, static fn (string $arg): bool => $arg !== self::FLAG)
         );
     }
 
     /**
-     * Adds a Termwind-rendered banner after the test suite completes.
-     *
-     * Skipped entirely when the user passed --no-console.
+     * Renders the custom Termwind output after all tests complete.
+     * Does nothing when disabled via --no-console (Collision handles output).
      */
     public function addOutput(int $exitCode): int
     {
@@ -52,19 +72,11 @@ final class Plugin implements HandlesArguments, AddsOutput
             return $exitCode;
         }
 
-        if ($exitCode === 0) {
-            render(<<<'HTML'
-                <div class="mt-1 px-2 py-1 bg-green-600 text-white font-bold">
-                    ✓ All tests passed!
-                </div>
-            HTML);
-        } else {
-            render(<<<'HTML'
-                <div class="mt-1 px-2 py-1 bg-red-600 text-white font-bold">
-                    ✗ Some tests failed.
-                </div>
-            HTML);
-        }
+        (new ConsoleRenderer())->render(
+            results: TestResultCollector::getResults(),
+            duration: TestResultCollector::getTotalDuration(),
+            assertionCount: TestResultCollector::getAssertionCount(),
+        );
 
         return $exitCode;
     }
