@@ -1,0 +1,10 @@
+.idea/
+composer.lock
+/vendor/
+coverage.xml
+.phpunit.result.cache
+.phpunit.cache/
+.php-cs-fixer.cache
+*.swp
+*.swo
+/.claude/

@@ -1,0 +1,74 @@
+{
+    "name": "yukabuki/pest-plugin-console",
+    "description": "A Pest 4 plugin that enhances test output using Symfony Console and Termwind, with multi-language support.",
+    "keywords": [
+        "php",
+        "pest",
+        "plugin",
+        "console",
+        "termwind",
+        "output",
+        "symfony"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "yukabuki",
+            "homepage": "https://github.com/yukabuki"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "pestphp/pest": "^4.0",
+        "pestphp/pest-plugin": "^4.0",
+        "symfony/console": "^7.0",
+        "symfony/translation": "^7.0",
+        "nunomaduro/termwind": "^2.0"
+    },
+    "require-dev": {
+        "pestphp/pest-dev-tools": "^4.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Yukabuki\\PestPluginConsole\\": "src/"
+        },
+        "files": [
+            "src/Autoload.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Yukabuki\\PestPluginConsole\\Tests\\": "tests/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "sort-packages": true,
+        "preferred-install": "dist",
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "pest": {
+            "plugins": [
+                "Yukabuki\\PestPluginConsole\\Plugin"
+            ]
+        }
+    },
+    "scripts": {
+        "refacto": "rector",
+        "lint": "pint",
+        "test:refacto": "rector --dry-run",
+        "test:lint": "pint --test",
+        "test:types": "phpstan analyse --ansi",
+        "test:unit": "pest --colors=always",
+        "test": [
+            "@test:refacto",
+            "@test:lint",
+            "@test:types",
+            "@test:unit"
+        ]
+    }
+}
