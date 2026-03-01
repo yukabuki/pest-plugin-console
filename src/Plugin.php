@@ -7,7 +7,11 @@ namespace Yukabuki\PestPluginConsole;
 use Pest\Contracts\Plugins\AddsOutput;
 use Pest\Contracts\Plugins\Bootable;
 use Pest\Contracts\Plugins\HandlesArguments;
+use Symfony\Component\Console\Output\ConsoleOutput;
 use Yukabuki\PestPluginConsole\Output\ConsoleRenderer;
+use Yukabuki\PestPluginConsole\Output\NullStreamFilter;
+
+use function Termwind\renderUsing;
 use Yukabuki\PestPluginConsole\Results\Subscribers\TestFailedSubscriber;
 use Yukabuki\PestPluginConsole\Results\Subscribers\TestFinishedSubscriber;
 use Yukabuki\PestPluginConsole\Results\Subscribers\TestPassedSubscriber;
@@ -20,15 +24,15 @@ use Yukabuki\PestPluginConsole\Results\TestResultCollector;
  */
 final class Plugin implements Bootable, HandlesArguments, AddsOutput
 {
-    /**
-     * CLI flag that falls back to Pest's original Collision output.
-     * Must also be handled in bin/pest-console before the autoloader loads.
-     */
     private const string FLAG = '--no-console';
 
+    /** @var resource|null */
+    private static mixed $stdoutFilter = null;
+
     /**
-     * Registers PHPUnit event subscribers to collect test results.
-     * Called before the test suite runs.
+     * Registers PHPUnit event subscribers and suppresses Collision/Pest output
+     * by attaching a null write-filter on STDOUT.
+     * The filter is removed in addOutput() just before our own render.
      */
     public function boot(): void
     {
@@ -41,36 +45,48 @@ final class Plugin implements Bootable, HandlesArguments, AddsOutput
             new TestSkippedSubscriber(),
             new TestFinishedSubscriber(),
         );
+
+        NullStreamFilter::register();
+        self::$stdoutFilter = stream_filter_append(STDOUT, NullStreamFilter::NAME, STREAM_FILTER_WRITE);
     }
 
     /**
-     * Detects --no-console and disables the plugin for this run.
-     *
      * @param  array<int, string>  $arguments
      * @return array<int, string>
      */
     public function handleArguments(array $arguments): array
     {
-        if (! in_array(self::FLAG, $arguments, true)) {
-            return $arguments;
+        if (in_array(self::FLAG, $arguments, true)) {
+            // Restore original output — user wants Pest's default display.
+            self::removeFilter();
+            PluginState::disable();
+
+            return array_values(
+                array_filter($arguments, static fn (string $arg): bool => $arg !== self::FLAG)
+            );
         }
 
-        PluginState::disable();
+        // Suppress Pest's own progress/summary output (Collision is handled by the filter).
+        if (! in_array('--no-output', $arguments, true)) {
+            $arguments[] = '--no-output';
+        }
 
-        return array_values(
-            array_filter($arguments, static fn (string $arg): bool => $arg !== self::FLAG)
-        );
+        return $arguments;
     }
 
     /**
-     * Renders the custom Termwind output after all tests complete.
-     * Does nothing when disabled via --no-console (Collision handles output).
+     * Removes the STDOUT filter then renders our custom output.
      */
     public function addOutput(int $exitCode): int
     {
+        self::removeFilter();
+
         if (! PluginState::isEnabled()) {
             return $exitCode;
         }
+
+        // Force ANSI colors — stream filter manipulation can break TTY detection.
+        renderUsing(new ConsoleOutput(decorated: true));
 
         (new ConsoleRenderer())->render(
             results: TestResultCollector::getResults(),
@@ -79,5 +95,13 @@ final class Plugin implements Bootable, HandlesArguments, AddsOutput
         );
 
         return $exitCode;
+    }
+
+    private static function removeFilter(): void
+    {
+        if (self::$stdoutFilter !== null) {
+            stream_filter_remove(self::$stdoutFilter);
+            self::$stdoutFilter = null;
+        }
     }
 }
