@@ -37,6 +37,18 @@ final class ProgressState
         self::$bar?->advance();
     }
 
+    /** Temporarily hides the bar without destroying it. */
+    public static function hide(): void
+    {
+        self::$bar?->clear();
+    }
+
+    /** Redraws the bar after hide(). */
+    public static function show(): void
+    {
+        self::$bar?->display();
+    }
+
     public static function clear(): void
     {
         if (self::$bar !== null) {

@@ -7,6 +7,7 @@ namespace Yukabuki\PestPluginConsole\Results\Subscribers;
 use PHPUnit\Event\TestRunner\ExecutionStarted;
 use PHPUnit\Event\TestRunner\ExecutionStartedSubscriber;
 use Yukabuki\PestPluginConsole\Output\ProgressState;
+use Yukabuki\PestPluginConsole\Output\StreamingTestRenderer;
 use Yukabuki\PestPluginConsole\PluginState;
 
 /**
@@ -21,5 +22,6 @@ final class TestExecutionStartedSubscriber implements ExecutionStartedSubscriber
         }
 
         ProgressState::init($event->testSuite()->count());
+        StreamingTestRenderer::init();
     }
 }

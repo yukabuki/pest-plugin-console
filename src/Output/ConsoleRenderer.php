@@ -23,8 +23,6 @@ final class ConsoleRenderer
     {
         $io = new SymfonyStyle(new ArrayInput([]), new ConsoleOutput(decorated: true));
 
-        $this->renderTestsByClass($results, $io);
-
         $failures = array_values(array_filter($results, fn (TestResult $r): bool => $r->status === 'failed'));
 
         if ($failures !== []) {

@@ -11,6 +11,7 @@ use Symfony\Component\Console\Output\ConsoleOutput;
 use Yukabuki\PestPluginConsole\Output\ConsoleRenderer;
 use Yukabuki\PestPluginConsole\Output\NullStreamFilter;
 use Yukabuki\PestPluginConsole\Output\ProgressState;
+use Yukabuki\PestPluginConsole\Output\StreamingTestRenderer;
 use Yukabuki\PestPluginConsole\Results\Subscribers\TestExecutionStartedSubscriber;
 
 use function Termwind\renderUsing;
@@ -90,6 +91,7 @@ final class Plugin implements Bootable, HandlesArguments, AddsOutput
      */
     public function addOutput(int $exitCode): int
     {
+        StreamingTestRenderer::flush();
         ProgressState::clear();
         self::removeFilter();
 
