@@ -41,9 +41,6 @@
             "Yukabuki\\PestPluginConsole\\Tests\\": "tests/"
         }
     },
-    "bin": [
-        "bin/pest-console"
-    ],
     "minimum-stability": "dev",
     "prefer-stable": true,
     "config": {
