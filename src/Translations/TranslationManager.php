@@ -12,8 +12,6 @@ use Yukabuki\PestPluginConsole\PluginState;
  * Manages translations for the plugin output.
  *
  * Users can extend the available locales by calling `addResourcePath()`.
- *
- * @internal
  */
 final class TranslationManager
 {
@@ -35,7 +33,7 @@ final class TranslationManager
     public static function instance(): self
     {
         if (self::$instance === null) {
-            self::$instance = new self(PluginState::getLocale());
+            self::$instance = new self();
         }
 
         return self::$instance;
@@ -43,12 +41,14 @@ final class TranslationManager
 
     /**
      * Static shortcut: translate a key using the shared singleton.
+     * The locale is always read from PluginState at call time, so --locale=XX
+     * works even if the singleton was created before handleArguments() ran.
      *
      * @param array<string, string> $parameters
      */
     public static function get(string $id, array $parameters = []): string
     {
-        return self::instance()->trans($id, $parameters);
+        return self::instance()->trans($id, $parameters, PluginState::getLocale());
     }
 
     /**
