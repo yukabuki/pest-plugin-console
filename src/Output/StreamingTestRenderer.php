@@ -9,10 +9,12 @@ use Symfony\Component\Console\Terminal;
 use Yukabuki\PestPluginConsole\Results\TestResult;
 
 /**
- * Writes test results to STDERR in real-time, one class at a time.
+ * Writes test results to STDERR in real-time.
  *
- * Results are buffered per class and flushed when the class changes,
- * so the class badge (PASS/FAIL/WARN) can reflect the final state.
+ * Each test line is printed immediately when it arrives.
+ * A class header is printed the first time a test from that class is seen.
+ * The PASS/FAIL/WARN badge is printed after the last test of a class,
+ * when the next class starts (or at flush).
  *
  * @internal
  */
@@ -20,19 +22,18 @@ final class StreamingTestRenderer
 {
     private static ?string $currentClass = null;
 
-    /** @var list<TestResult> */
-    private static array $buffer = [];
+    private static bool $classHasFailure = false;
+
+    private static bool $classHasSkipped = false;
 
     private static ?StreamOutput $output = null;
 
-    /**
-     * Called once before tests start. Prints the TESTS section header to STDERR.
-     */
     public static function init(): void
     {
-        self::$currentClass = null;
-        self::$buffer       = [];
-        self::$output       = new StreamOutput(STDERR, decorated: true);
+        self::$currentClass   = null;
+        self::$classHasFailure = false;
+        self::$classHasSkipped = false;
+        self::$output          = new StreamOutput(STDERR, decorated: true);
 
         $width = (new Terminal())->getWidth();
 
@@ -44,91 +45,94 @@ final class StreamingTestRenderer
         ProgressState::show();
     }
 
-    /**
-     * Buffers a test result and flushes the previous class when the class changes.
-     */
     public static function addResult(TestResult $result): void
     {
         if (self::$output === null) {
             return;
         }
 
+        // Class changed → flush badge for the previous class, then print new class header
         if ($result->className !== self::$currentClass) {
-            self::flushClass();
-            self::$currentClass = $result->className;
+            self::printBadge();
+
+            $parts     = explode('\\', $result->className);
+            $className = end($parts).'.php';
+
+            ProgressState::hide();
+
+            if (self::$currentClass !== null) {
+                self::$output->writeln('');
+            }
+
+            self::$output->writeln(sprintf(' <options=bold>%s</>', $className));
+            ProgressState::show();
+
+            self::$currentClass    = $result->className;
+            self::$classHasFailure = false;
+            self::$classHasSkipped = false;
         }
 
-        self::$buffer[] = $result;
+        // Track class outcome for the badge
+        if ($result->status === 'failed') {
+            self::$classHasFailure = true;
+        } elseif ($result->status === 'skipped') {
+            self::$classHasSkipped = true;
+        }
+
+        // Print test line immediately
+        [$icon, $iconColor] = match ($result->status) {
+            'passed'  => ['✓', 'green'],
+            'failed'  => ['⨯', 'red'],
+            'skipped' => ['-', 'yellow'],
+            default   => ['?', 'gray'],
+        };
+
+        $duration = $result->duration > 0
+            ? sprintf(' <fg=gray>%ss</>', number_format($result->duration, 2))
+            : '';
+
+        ProgressState::hide();
+        self::$output->writeln(sprintf(
+            '   <fg=%s>%s</> %s%s',
+            $iconColor,
+            $icon,
+            $result->testName,
+            $duration,
+        ));
+        ProgressState::show();
     }
 
-    /**
-     * Flushes the last buffered class. Called from Plugin::addOutput().
-     */
     public static function flush(): void
     {
-        self::flushClass();
-        self::$currentClass = null;
-        self::$buffer       = [];
-        self::$output       = null;
+        self::printBadge();
+        self::$currentClass    = null;
+        self::$classHasFailure = false;
+        self::$classHasSkipped = false;
+        self::$output          = null;
     }
 
     /**
-     * Prints the buffered class header + test lines to STDERR, then clears the buffer.
+     * Prints the PASS/FAIL/WARN badge below the last test of the current class.
      */
-    private static function flushClass(): void
+    private static function printBadge(): void
     {
-        if (self::$buffer === [] || self::$output === null) {
+        if (self::$currentClass === null || self::$output === null) {
             return;
         }
 
-        $classResults = self::$buffer;
-        $hasFailure   = array_filter($classResults, fn (TestResult $r): bool => $r->status === 'failed') !== [];
-        $hasSkipped   = array_filter($classResults, fn (TestResult $r): bool => $r->status === 'skipped') !== [];
-
         [$badge, $badgeFg, $badgeBg] = match (true) {
-            $hasFailure => ['FAIL', 'white', 'red'],
-            $hasSkipped => ['WARN', 'black', 'yellow'],
-            default     => ['PASS', 'white', 'green'],
+            self::$classHasFailure => ['FAIL', 'white', 'red'],
+            self::$classHasSkipped => ['WARN', 'black', 'yellow'],
+            default                => ['PASS', 'white', 'green'],
         };
 
-        $parts     = explode('\\', $classResults[0]->className);
-        $className = end($parts).'.php';
-
         ProgressState::hide();
-
         self::$output->writeln(sprintf(
-            ' <fg=%s;bg=%s;options=bold> %s </> <options=bold>%s</>',
+            ' <fg=%s;bg=%s;options=bold> %s </>',
             $badgeFg,
             $badgeBg,
             $badge,
-            $className,
         ));
-
-        foreach ($classResults as $result) {
-            [$icon, $iconColor] = match ($result->status) {
-                'passed'  => ['✓', 'green'],
-                'failed'  => ['⨯', 'red'],
-                'skipped' => ['-', 'yellow'],
-                default   => ['?', 'gray'],
-            };
-
-            $duration = $result->duration > 0
-                ? sprintf(' <fg=gray>%ss</>', number_format($result->duration, 2))
-                : '';
-
-            self::$output->writeln(sprintf(
-                '   <fg=%s>%s</> %s%s',
-                $iconColor,
-                $icon,
-                $result->testName,
-                $duration,
-            ));
-        }
-
-        self::$output->writeln('');
-
         ProgressState::show();
-
-        self::$buffer = [];
     }
 }
