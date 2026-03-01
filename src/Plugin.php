@@ -10,6 +10,8 @@ use Pest\Contracts\Plugins\HandlesArguments;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Yukabuki\PestPluginConsole\Output\ConsoleRenderer;
 use Yukabuki\PestPluginConsole\Output\NullStreamFilter;
+use Yukabuki\PestPluginConsole\Output\ProgressState;
+use Yukabuki\PestPluginConsole\Results\Subscribers\TestExecutionStartedSubscriber;
 
 use function Termwind\renderUsing;
 use Yukabuki\PestPluginConsole\Results\Subscribers\TestFailedSubscriber;
@@ -24,7 +26,8 @@ use Yukabuki\PestPluginConsole\Results\TestResultCollector;
  */
 final class Plugin implements Bootable, HandlesArguments, AddsOutput
 {
-    private const string FLAG = '--no-console';
+    private const string FLAG      = '--no-console';
+    private const string FLAG_SLOW = '--slow';
 
     /** @var resource|null */
     private static mixed $stdoutFilter = null;
@@ -39,6 +42,7 @@ final class Plugin implements Bootable, HandlesArguments, AddsOutput
         TestResultCollector::reset();
 
         \PHPUnit\Event\Facade::instance()->registerSubscribers(
+            new TestExecutionStartedSubscriber(),
             new TestStartedSubscriber(),
             new TestPassedSubscriber(),
             new TestFailedSubscriber(),
@@ -66,6 +70,13 @@ final class Plugin implements Bootable, HandlesArguments, AddsOutput
             );
         }
 
+        if (in_array(self::FLAG_SLOW, $arguments, true)) {
+            PluginState::enableSlow();
+            $arguments = array_values(
+                array_filter($arguments, static fn (string $arg): bool => $arg !== self::FLAG_SLOW)
+            );
+        }
+
         // Suppress Pest's own progress/summary output (Collision is handled by the filter).
         if (! in_array('--no-output', $arguments, true)) {
             $arguments[] = '--no-output';
@@ -79,6 +90,7 @@ final class Plugin implements Bootable, HandlesArguments, AddsOutput
      */
     public function addOutput(int $exitCode): int
     {
+        ProgressState::clear();
         self::removeFilter();
 
         if (! PluginState::isEnabled()) {

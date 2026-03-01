@@ -15,6 +15,8 @@ final class PluginState
 {
     private static bool $enabled = true;
 
+    private static bool $slow = false;
+
     public static function disable(): void
     {
         self::$enabled = false;
@@ -23,5 +25,15 @@ final class PluginState
     public static function isEnabled(): bool
     {
         return self::$enabled;
+    }
+
+    public static function enableSlow(): void
+    {
+        self::$slow = true;
+    }
+
+    public static function isSlow(): bool
+    {
+        return self::$slow;
     }
 }

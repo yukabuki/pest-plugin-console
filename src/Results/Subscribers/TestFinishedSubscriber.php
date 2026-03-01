@@ -6,6 +6,8 @@ namespace Yukabuki\PestPluginConsole\Results\Subscribers;
 
 use PHPUnit\Event\Test\Finished;
 use PHPUnit\Event\Test\FinishedSubscriber;
+use Yukabuki\PestPluginConsole\Output\ProgressState;
+use Yukabuki\PestPluginConsole\PluginState;
 use Yukabuki\PestPluginConsole\Results\TestResultCollector;
 
 /**
@@ -16,5 +18,10 @@ final class TestFinishedSubscriber implements FinishedSubscriber
     public function notify(Finished $event): void
     {
         TestResultCollector::addAssertions($event->numberOfAssertionsPerformed());
+        ProgressState::advance();
+
+        if (PluginState::isSlow()) {
+            usleep(500_000);
+        }
     }
 }
