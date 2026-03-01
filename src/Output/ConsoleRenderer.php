@@ -10,6 +10,7 @@ use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Console\Terminal;
 use Yukabuki\PestPluginConsole\Results\TestResult;
+use Yukabuki\PestPluginConsole\Translations\TranslationManager;
 
 use function Termwind\render;
 
@@ -26,7 +27,8 @@ final class ConsoleRenderer
         $failures = array_values(array_filter($results, fn (TestResult $r): bool => $r->status === 'failed'));
 
         if ($failures !== []) {
-            $this->renderFailuresSection($failures, $io);
+            $this->renderSection($io, TranslationManager::get('section.fail'));
+            $this->renderFailuresSection($failures);
         }
 
         $this->renderSummary($results, $duration, $assertionCount, $io);
@@ -107,10 +109,8 @@ final class ConsoleRenderer
     // -------------------------------------------------------------------------
 
     /** @param array<int, TestResult> $failures */
-    private function renderFailuresSection(array $failures, SymfonyStyle $io): void
+    private function renderFailuresSection(array $failures): void
     {
-        $this->renderSection($io, 'Fail');
-
         foreach ($failures as $i => $failure) {
             $this->renderFailureDetail($i + 1, $failure);
         }
@@ -184,7 +184,7 @@ final class ConsoleRenderer
     /** @param array<int, TestResult> $results */
     private function renderSummary(array $results, float $duration, int $assertionCount, SymfonyStyle $io): void
     {
-        $this->renderSection($io, 'Report');
+        $this->renderSection($io, TranslationManager::get('section.report'));
 
         $passed  = count(array_filter($results, fn (TestResult $r): bool => $r->status === 'passed'));
         $failed  = count(array_filter($results, fn (TestResult $r): bool => $r->status === 'failed'));
@@ -204,7 +204,15 @@ final class ConsoleRenderer
 
         $table = new Table($io);
         $table->setStyle('box');
-        $table->setHeaders(['Passed', 'Failed', 'Skipped', 'Total', 'Assertions', 'Duration', 'Avg']);
+        $table->setHeaders([
+            TranslationManager::get('table.passed'),
+            TranslationManager::get('table.failed'),
+            TranslationManager::get('table.skipped'),
+            TranslationManager::get('table.total'),
+            TranslationManager::get('table.assertions'),
+            TranslationManager::get('table.duration'),
+            TranslationManager::get('table.avg'),
+        ]);
         $table->addRow($row);
         $table->render();
     }

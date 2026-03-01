@@ -17,6 +17,8 @@ final class PluginState
 
     private static bool $slow = false;
 
+    private static string $locale = 'en';
+
     public static function disable(): void
     {
         self::$enabled = false;
@@ -35,5 +37,15 @@ final class PluginState
     public static function isSlow(): bool
     {
         return self::$slow;
+    }
+
+    public static function setLocale(string $locale): void
+    {
+        self::$locale = $locale;
+    }
+
+    public static function getLocale(): string
+    {
+        return self::$locale;
     }
 }

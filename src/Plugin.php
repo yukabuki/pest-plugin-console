@@ -27,8 +27,9 @@ use Yukabuki\PestPluginConsole\Results\TestResultCollector;
  */
 final class Plugin implements Bootable, HandlesArguments, AddsOutput
 {
-    private const string FLAG      = '--no-console';
-    private const string FLAG_SLOW = '--slow';
+    private const string FLAG        = '--no-console';
+    private const string FLAG_SLOW   = '--slow';
+    private const string FLAG_LOCALE = '--locale=';
 
     /** @var resource|null */
     private static mixed $stdoutFilter = null;
@@ -77,6 +78,16 @@ final class Plugin implements Bootable, HandlesArguments, AddsOutput
                 array_filter($arguments, static fn (string $arg): bool => $arg !== self::FLAG_SLOW)
             );
         }
+
+        foreach ($arguments as $arg) {
+            if (str_starts_with($arg, self::FLAG_LOCALE)) {
+                PluginState::setLocale(substr($arg, strlen(self::FLAG_LOCALE)));
+            }
+        }
+
+        $arguments = array_values(
+            array_filter($arguments, static fn (string $arg): bool => ! str_starts_with($arg, self::FLAG_LOCALE))
+        );
 
         // Suppress Pest's own progress/summary output (Collision is handled by the filter).
         if (! in_array('--no-output', $arguments, true)) {

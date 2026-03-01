@@ -7,15 +7,25 @@ declare(strict_types=1);
  *
  * Pour utiliser vos propres traductions, créez un fichier similaire et enregistrez-le :
  *
- *   $manager->addResourcePath('/votre/lang/fr/messages.php', 'fr');
+ *   TranslationManager::instance()->addResourcePath('/votre/lang/fr/messages.php', 'fr');
  */
 return [
-    // Général
-    'tests.passed'  => 'Tests réussis !',
-    'tests.failed'  => 'Des tests ont échoué.',
-    'tests.summary' => ':passed réussi(s), :failed échoué(s), :skipped ignoré(s) (:total au total)',
+    // Titres de section
+    'section.tests'    => 'TESTS',
+    'section.fail'     => 'ÉCHEC',
+    'section.report'   => 'RAPPORT',
 
-    // Infos d'exécution
-    'run.start'    => 'Lancement de la suite de tests...',
-    'run.duration' => 'Terminé en :time secondes.',
+    // Badges affichés à côté de chaque classe de test
+    'badge.pass'       => 'PASS',
+    'badge.fail'       => 'FAIL',
+    'badge.warn'       => 'ATTN',
+
+    // En-têtes du tableau récapitulatif
+    'table.passed'     => 'Réussis',
+    'table.failed'     => 'Échoués',
+    'table.skipped'    => 'Ignorés',
+    'table.total'      => 'Total',
+    'table.assertions' => 'Assertions',
+    'table.duration'   => 'Durée',
+    'table.avg'        => 'Moy.',
 ];

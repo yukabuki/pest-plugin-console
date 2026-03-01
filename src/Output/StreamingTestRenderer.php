@@ -7,6 +7,7 @@ namespace Yukabuki\PestPluginConsole\Output;
 use Symfony\Component\Console\Output\StreamOutput;
 use Symfony\Component\Console\Terminal;
 use Yukabuki\PestPluginConsole\Results\TestResult;
+use Yukabuki\PestPluginConsole\Translations\TranslationManager;
 
 /**
  * Writes test results to STDERR in real-time.
@@ -39,7 +40,7 @@ final class StreamingTestRenderer
 
         ProgressState::hide();
         self::$output->writeln('');
-        self::$output->writeln(' <fg=yellow;options=bold>TESTS</>');
+        self::$output->writeln(sprintf(' <fg=yellow;options=bold>%s</>', TranslationManager::get('section.tests')));
         self::$output->writeln(sprintf('<fg=yellow>%s</>', str_repeat('─', $width)));
         self::$output->writeln('');
         ProgressState::show();
@@ -121,9 +122,9 @@ final class StreamingTestRenderer
         }
 
         [$badge, $badgeFg, $badgeBg] = match (true) {
-            self::$classHasFailure => ['FAIL', 'white', 'red'],
-            self::$classHasSkipped => ['WARN', 'black', 'yellow'],
-            default                => ['PASS', 'white', 'green'],
+            self::$classHasFailure => [TranslationManager::get('badge.fail'), 'white', 'red'],
+            self::$classHasSkipped => [TranslationManager::get('badge.warn'), 'black', 'yellow'],
+            default                => [TranslationManager::get('badge.pass'), 'white', 'green'],
         };
 
         ProgressState::hide();

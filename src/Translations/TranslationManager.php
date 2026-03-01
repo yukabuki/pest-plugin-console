@@ -6,6 +6,7 @@ namespace Yukabuki\PestPluginConsole\Translations;
 
 use Symfony\Component\Translation\Loader\PhpFileLoader;
 use Symfony\Component\Translation\Translator;
+use Yukabuki\PestPluginConsole\PluginState;
 
 /**
  * Manages translations for the plugin output.
@@ -16,6 +17,8 @@ use Symfony\Component\Translation\Translator;
  */
 final class TranslationManager
 {
+    private static ?self $instance = null;
+
     private readonly Translator $translator;
 
     public function __construct(private string $locale = 'en')
@@ -24,6 +27,28 @@ final class TranslationManager
         $this->translator->addLoader('php', new PhpFileLoader());
 
         $this->registerBuiltinTranslations();
+    }
+
+    /**
+     * Returns the shared singleton, instantiated with the current PluginState locale.
+     */
+    public static function instance(): self
+    {
+        if (self::$instance === null) {
+            self::$instance = new self(PluginState::getLocale());
+        }
+
+        return self::$instance;
+    }
+
+    /**
+     * Static shortcut: translate a key using the shared singleton.
+     *
+     * @param array<string, string> $parameters
+     */
+    public static function get(string $id, array $parameters = []): string
+    {
+        return self::instance()->trans($id, $parameters);
     }
 
     /**
