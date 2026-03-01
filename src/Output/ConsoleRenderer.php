@@ -33,6 +33,12 @@ final class ConsoleRenderer
     /** @param array<int, TestResult> $results */
     private function renderTestsByClass(array $results): void
     {
+        render(<<<'HTML'
+            <div class="mt-1 ml-1">
+                <span class="font-bold text-gray-400 uppercase">Tests</span>
+            </div>
+        HTML);
+
         /** @var array<string, list<TestResult>> $byClass */
         $byClass = [];
 
@@ -97,7 +103,7 @@ final class ConsoleRenderer
         render(<<<HTML
             <div class="mt-1 text-gray-600">{$separator}</div>
             <div class="mt-1 ml-1">
-                <span class="font-bold text-red-500 uppercase">Failures</span>
+                <span class="font-bold text-red-500 uppercase">Fail</span>
             </div>
         HTML);
 
@@ -181,6 +187,15 @@ final class ConsoleRenderer
     /** @param array<int, TestResult> $results */
     private function renderSummary(array $results, float $duration, int $assertionCount): void
     {
+        $separator = str_repeat('─', min(terminal()->width(), 80));
+
+        render(<<<HTML
+            <div class="mt-1 text-gray-600">{$separator}</div>
+            <div class="ml-1">
+                <span class="font-bold text-gray-400 uppercase">Report</span>
+            </div>
+        HTML);
+
         $passed  = count(array_filter($results, fn (TestResult $r): bool => $r->status === 'passed'));
         $failed  = count(array_filter($results, fn (TestResult $r): bool => $r->status === 'failed'));
         $skipped = count(array_filter($results, fn (TestResult $r): bool => $r->status === 'skipped'));
@@ -188,11 +203,12 @@ final class ConsoleRenderer
         $total = count($results);
         $avg   = $total > 0 ? $duration / $total : 0.0;
 
-        $headers = ['Passed', 'Failed', 'Skipped', 'Assertions', 'Duration', 'Avg'];
+        $headers = ['Passed', 'Failed', 'Skipped', 'Total', 'Assertions', 'Duration', 'Avg'];
         $values  = [
             (string) $passed,
             (string) $failed,
             (string) $skipped,
+            (string) $total,
             (string) $assertionCount,
             number_format($duration, 2).'s',
             number_format($avg, 2).'s',
@@ -219,12 +235,13 @@ final class ConsoleRenderer
 
         // Color per column — Passed/Failed/Skipped only get a background when count > 0
         $colColors = [
-            $passed  > 0 ? 'bg-green-700 text-white' : 'text-gray-300',
-            $failed  > 0 ? 'bg-red-700 text-white'   : 'text-gray-300',
-            $skipped > 0 ? 'bg-yellow-600 text-black' : 'text-gray-300',
-            'bg-blue-700 text-white',  // Assertions — always
-            'text-gray-300',           // Duration — no background
-            'text-gray-300',           // Avg — no background
+            $passed  > 0 ? 'bg-green-700 text-white'  : 'text-gray-300',
+            $failed  > 0 ? 'bg-red-700 text-white'    : 'text-gray-300',
+            $skipped > 0 ? 'bg-yellow-600 text-black'  : 'text-gray-300',
+            'bg-gray-700 text-white',   // Total — always
+            'bg-blue-700 text-white',   // Assertions — always
+            'text-gray-300',            // Duration — no background
+            'text-gray-300',            // Avg — no background
         ];
 
         // Value row: each cell is a colored span, separators are white
