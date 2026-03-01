@@ -81,7 +81,17 @@ final class Plugin implements Bootable, HandlesArguments, AddsOutput
 
         foreach ($arguments as $arg) {
             if (str_starts_with($arg, self::FLAG_LOCALE)) {
-                PluginState::setLocale(substr($arg, strlen(self::FLAG_LOCALE)));
+                $locale = substr($arg, strlen(self::FLAG_LOCALE));
+
+                if ($locale === '') {
+                    self::abort('--locale requires a value (e.g. --locale=fr).');
+                }
+
+                if (! preg_match('/^[a-z]{2,3}(_[A-Z]{2})?$/', $locale)) {
+                    self::abort("Invalid locale value \"{$locale}\". Expected format: \"fr\" or \"fr_FR\".");
+                }
+
+                PluginState::setLocale($locale);
             }
         }
 
@@ -128,5 +138,12 @@ final class Plugin implements Bootable, HandlesArguments, AddsOutput
             stream_filter_remove(self::$stdoutFilter);
             self::$stdoutFilter = null;
         }
+    }
+
+    private static function abort(string $message): never
+    {
+        self::removeFilter();
+        fwrite(STDERR, sprintf("\n \033[1;31m[pest-plugin-console]\033[0m %s\n\n", $message));
+        exit(1);
     }
 }

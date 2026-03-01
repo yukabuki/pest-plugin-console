@@ -68,10 +68,24 @@ final class TranslationManager
      *
      * Example usage in user code:
      *
-     *   $manager->addResourcePath('/path/to/lang/fr/messages.php', 'fr');
+     *   TranslationManager::instance()->addResourcePath('/path/to/lang/de/messages.php', 'de');
+     *
+     * @throws \InvalidArgumentException if the file is not found or the locale format is invalid.
      */
     public function addResourcePath(string $path, string $locale): self
     {
+        if (! file_exists($path)) {
+            throw new \InvalidArgumentException(
+                "[pest-plugin-console] Translation file not found: \"{$path}\"."
+            );
+        }
+
+        if (! preg_match('/^[a-z]{2,3}(_[A-Z]{2})?$/', $locale)) {
+            throw new \InvalidArgumentException(
+                "[pest-plugin-console] Invalid locale \"{$locale}\". Expected format: \"de\" or \"de_DE\"."
+            );
+        }
+
         $this->translator->addResource('php', $path, $locale, 'messages');
 
         return $this;
