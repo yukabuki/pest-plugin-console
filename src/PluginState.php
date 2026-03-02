@@ -19,6 +19,10 @@ final class PluginState
 
     private static string $locale = 'en';
 
+    private static bool $htmlReport = false;
+
+    private static string $htmlReportPath = 'tests/_output/pest/report.html';
+
     public static function disable(): void
     {
         self::$enabled = false;
@@ -47,5 +51,21 @@ final class PluginState
     public static function getLocale(): string
     {
         return self::$locale;
+    }
+
+    public static function enableHtmlReport(string $path): void
+    {
+        self::$htmlReport     = true;
+        self::$htmlReportPath = $path;
+    }
+
+    public static function isHtmlReportEnabled(): bool
+    {
+        return self::$htmlReport;
+    }
+
+    public static function getHtmlReportPath(): string
+    {
+        return self::$htmlReportPath;
     }
 }

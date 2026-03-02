@@ -9,6 +9,7 @@ use Pest\Contracts\Plugins\Bootable;
 use Pest\Contracts\Plugins\HandlesArguments;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Yukabuki\PestPluginConsole\Output\ConsoleRenderer;
+use Yukabuki\PestPluginConsole\Output\HtmlReportGenerator;
 use Yukabuki\PestPluginConsole\Output\NullStreamFilter;
 use Yukabuki\PestPluginConsole\Output\ProgressState;
 use Yukabuki\PestPluginConsole\Output\StreamingTestRenderer;
@@ -27,9 +28,10 @@ use Yukabuki\PestPluginConsole\Results\TestResultCollector;
  */
 final class Plugin implements Bootable, HandlesArguments, AddsOutput
 {
-    private const string FLAG        = '--no-console';
-    private const string FLAG_SLOW   = '--slow';
-    private const string FLAG_LOCALE = '--locale=';
+    private const string FLAG             = '--no-console';
+    private const string FLAG_SLOW        = '--slow';
+    private const string FLAG_LOCALE      = '--locale=';
+    private const string FLAG_HTML_REPORT = '--html-report';
 
     /** @var resource|null */
     private static mixed $stdoutFilter = null;
@@ -99,6 +101,24 @@ final class Plugin implements Bootable, HandlesArguments, AddsOutput
             array_filter($arguments, static fn (string $arg): bool => ! str_starts_with($arg, self::FLAG_LOCALE))
         );
 
+        foreach ($arguments as $arg) {
+            if ($arg === self::FLAG_HTML_REPORT || str_starts_with($arg, self::FLAG_HTML_REPORT.'=')) {
+                $path = $arg === self::FLAG_HTML_REPORT
+                    ? 'tests/_output/pest/report.html'
+                    : substr($arg, strlen(self::FLAG_HTML_REPORT) + 1);
+
+                if ($path === '') {
+                    self::abort('--html-report requires a non-empty path when a value is provided.');
+                }
+
+                PluginState::enableHtmlReport($path);
+            }
+        }
+
+        $arguments = array_values(array_filter($arguments, static fn (string $arg): bool =>
+            $arg !== self::FLAG_HTML_REPORT && ! str_starts_with($arg, self::FLAG_HTML_REPORT.'=')
+        ));
+
         // Suppress Pest's own progress/summary output (Collision is handled by the filter).
         if (! in_array('--no-output', $arguments, true)) {
             $arguments[] = '--no-output';
@@ -115,6 +135,15 @@ final class Plugin implements Bootable, HandlesArguments, AddsOutput
         StreamingTestRenderer::flush();
         ProgressState::clear();
         self::removeFilter();
+
+        if (PluginState::isHtmlReportEnabled()) {
+            (new HtmlReportGenerator())->generate(
+                path:           PluginState::getHtmlReportPath(),
+                results:        TestResultCollector::getResults(),
+                duration:       TestResultCollector::getTotalDuration(),
+                assertionCount: TestResultCollector::getAssertionCount(),
+            );
+        }
 
         if (! PluginState::isEnabled()) {
             return $exitCode;
