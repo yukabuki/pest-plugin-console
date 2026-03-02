@@ -17,6 +17,19 @@ it('switches locale at runtime', function (): void {
     expect($manager->getLocale())->toBe('fr');
 });
 
+it('setLocale syncs PluginState so TranslationManager::get() uses the new locale', function (): void {
+    $tmpFile = tempnam(sys_get_temp_dir(), 'pest_plugin_console_').'.php';
+    file_put_contents($tmpFile, '<?php return ["section.report" => "BERICHT"];');
+
+    TranslationManager::instance()
+        ->addResourcePath($tmpFile, 'de')
+        ->setLocale('de');
+
+    expect(TranslationManager::get('section.report'))->toBe('BERICHT');
+
+    unlink($tmpFile);
+});
+
 it('accepts custom translation resource paths', function (): void {
     $manager = new TranslationManager();
 
