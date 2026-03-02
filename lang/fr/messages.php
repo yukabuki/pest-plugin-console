@@ -12,12 +12,12 @@ declare(strict_types=1);
 return [
     // Titres de section
     'section.tests'    => 'TESTS',
-    'section.fail'     => 'ÉCHEC',
+    'section.fail'     => 'ÉCHECS',
     'section.report'   => 'RAPPORT',
 
     // Badges affichés à côté de chaque classe de test
-    'badge.pass'       => 'PASS',
-    'badge.fail'       => 'FAIL',
+    'badge.pass'       => 'OK',
+    'badge.fail'       => 'ÉCHEC',
     'badge.warn'       => 'ATTN',
 
     // En-têtes du tableau récapitulatif
