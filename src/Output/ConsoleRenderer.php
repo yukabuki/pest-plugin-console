@@ -9,6 +9,7 @@ use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Console\Terminal;
+use Yukabuki\PestPluginConsole\PluginState;
 use Yukabuki\PestPluginConsole\Results\TestResult;
 use Yukabuki\PestPluginConsole\Translations\TranslationManager;
 
@@ -201,6 +202,21 @@ final class ConsoleRenderer
             ' '.number_format($duration, 2).'s ',
             ' '.number_format($avg, 2).'s ',
         ];
+
+        if (PluginState::isHtmlReportEnabled()) {
+            $path       = PluginState::getHtmlReportPath();
+            $isAbsolute = str_starts_with($path, '/') || (($path[1] ?? '') === ':');
+            $fullPath   = $isAbsolute ? $path : getcwd().'/'.$path;
+            $fullPath   = str_replace('\\', '/', $fullPath);
+            $fileUri    = 'file:///'.ltrim($fullPath, '/');
+
+            $io->writeln(sprintf(
+                ' <fg=gray>HTML report →</> <href=%s><fg=blue>%s</>',
+                $fileUri,
+                $fullPath,
+            ));
+            $io->newLine();
+        }
 
         $table = new Table($io);
         $table->setStyle('box');
